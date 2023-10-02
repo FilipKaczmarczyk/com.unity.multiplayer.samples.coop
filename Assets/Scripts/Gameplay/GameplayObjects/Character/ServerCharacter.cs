@@ -56,11 +56,7 @@ namespace Unity.BossRoom.Gameplay.GameplayObjects.Character
         public NetworkVariable<bool> IsStealthy { get; } = new NetworkVariable<bool>();
 
         public NetworkHealthState NetHealthState { get; private set; }
-
-        /// <summary>
-        /// The active target of this character.
-        /// </summary>
-        public NetworkVariable<ulong> TargetId { get; } = new NetworkVariable<ulong>();
+        public NetworkManaState NetManaState { get; private set; }
 
         /// <summary>
         /// Current HP. This value is populated at startup time from CharacterClass data.
@@ -71,6 +67,19 @@ namespace Unity.BossRoom.Gameplay.GameplayObjects.Character
             private set => NetHealthState.HitPoints.Value = value;
         }
 
+        /// <summary>
+        /// Current MP. This value is populated at startup time from CharacterClass data.
+        /// </summary>
+        public int ManaPoints
+        {
+            get => NetManaState.ManaPoints.Value;
+            private set => NetManaState.ManaPoints.Value = value;
+        }
+
+        /// <summary>
+        /// The active target of this character.
+        /// </summary>
+        public NetworkVariable<ulong> TargetId { get; } = new NetworkVariable<ulong>();
         public NetworkLifeState NetLifeState { get; private set; }
 
         /// <summary>
@@ -123,6 +132,9 @@ namespace Unity.BossRoom.Gameplay.GameplayObjects.Character
         [SerializeField]
         DamageReceiver m_DamageReceiver;
 
+        [SerializeField] 
+        ManaOwner m_ManaOwner;
+
         [SerializeField]
         ServerCharacterMovement m_Movement;
 
@@ -146,6 +158,7 @@ namespace Unity.BossRoom.Gameplay.GameplayObjects.Character
             m_ServerActionPlayer = new ServerActionPlayer(this);
             NetLifeState = GetComponent<NetworkLifeState>();
             NetHealthState = GetComponent<NetworkHealthState>();
+            NetManaState = GetComponent<NetworkManaState>();
             m_State = GetComponent<NetworkAvatarGuidState>();
         }
 
@@ -168,7 +181,14 @@ namespace Unity.BossRoom.Gameplay.GameplayObjects.Character
                     var startingAction = new ActionRequestData() { ActionID = m_StartingAction.ActionID };
                     PlayAction(ref startingAction);
                 }
+
                 InitializeHitPoints();
+
+                if (m_ManaOwner != null)
+                {
+                    m_ManaOwner.ManaReceived += ReceiveMana;
+                    InitializeManaPoints();
+                }
             }
         }
 
@@ -180,6 +200,11 @@ namespace Unity.BossRoom.Gameplay.GameplayObjects.Character
             {
                 m_DamageReceiver.DamageReceived -= ReceiveHP;
                 m_DamageReceiver.CollisionEntered -= CollisionEntered;
+            }
+
+            if (m_ManaOwner)
+            {
+                m_ManaOwner.ManaReceived -= ReceiveMana;
             }
         }
 
@@ -251,6 +276,20 @@ namespace Unity.BossRoom.Gameplay.GameplayObjects.Character
                     {
                         LifeState = LifeState.Fainted;
                     }
+                }
+            }
+        }
+
+        void InitializeManaPoints()
+        {
+            ManaPoints = CharacterClass.BaseMana.Value;
+
+            if (!IsNpc)
+            {
+                SessionPlayerData? sessionPlayerData = SessionManager<SessionPlayerData>.Instance.GetPlayerData(OwnerClientId);
+                if (sessionPlayerData is { HasCharacterSpawned: true })
+                {
+                    ManaPoints = sessionPlayerData.Value.CurrentManaPoints;
                 }
             }
         }
@@ -350,6 +389,26 @@ namespace Unity.BossRoom.Gameplay.GameplayObjects.Character
 
                 m_ServerActionPlayer.ClearActions(false);
             }
+        }
+        
+        /// <summary>
+        /// Receive an MP change from somewhere positive or negative.
+        /// </summary>
+        /// <param name="MP">Mana points to receive. A positive value is the refill from ally spells. Negative is from casting spells.</param>
+        void ReceiveMana(int MP)
+        {
+            if (MP > 0)
+            {
+                m_ServerActionPlayer.OnGameplayActivity(Action.GameplayActivity.ManaReceived);
+                var receivedManaMod = m_ServerActionPlayer.GetBuffedValue(Action.BuffableValue.PercentManaReceived);
+                MP = (int)(MP * receivedManaMod);
+            }
+            else
+            {
+                // CASTING SPELLS
+            }
+            
+            ManaPoints = Mathf.Clamp(ManaPoints + MP, 0, CharacterClass.BaseHP.Value);
         }
 
         /// <summary>

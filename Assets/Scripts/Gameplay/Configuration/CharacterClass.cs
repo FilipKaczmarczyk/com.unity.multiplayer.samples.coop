@@ -28,7 +28,7 @@ namespace Unity.BossRoom.Gameplay.Configuration
         public IntVariable BaseHP;
 
         [Tooltip("Starting Mana of this character class")]
-        public int BaseMana;
+        public IntVariable BaseMana;
 
         [Tooltip("Base movement speed of this character class (in meters/sec)")]
         public float Speed;
