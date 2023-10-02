@@ -16,9 +16,9 @@ namespace Unity.BossRoom.Gameplay.Actions
         /// we ensure that the target is less than Range meters away from the player, plus this "fudge
         /// factor" to accomodate miscellaneous minor movement.
         /// </summary>
-        const float k_MaxDistanceDivergence = 1;
+        private const float k_MaxDistanceDivergence = 1;
 
-        bool m_DidAoE;
+        private bool m_DidAoE;
 
 
         public override bool OnStart(ServerCharacter serverCharacter)
@@ -62,14 +62,17 @@ namespace Unity.BossRoom.Gameplay.Actions
             // Note: could have a non alloc version of this overlap sphere where we statically store our collider array, but since this is a self
             // destroyed object, the complexity added to have a static pool of colliders that could be called by multiplayer players at the same time
             // doesn't seem worth it for now.
-            var colliders = Physics.OverlapSphere(m_Data.Position, Config.Radius, LayerMask.GetMask("NPCs"));
+
+            var targetLayer = Config.IsFriendly ? LayerMask.GetMask("PCs") : LayerMask.GetMask("NPCs");
+            
+            var colliders = Physics.OverlapSphere(m_Data.Position, Config.Radius, targetLayer);
             for (var i = 0; i < colliders.Length; i++)
             {
-                var enemy = colliders[i].GetComponent<IDamageable>();
-                if (enemy != null)
+                var targets = colliders[i].GetComponent<IDamageable>();
+                if (targets != null)
                 {
                     // actually deal the damage
-                    enemy.ReceiveHP(parent, -Config.Amount);
+                    targets.ReceiveHP(parent, -Config.Amount);
                 }
             }
         }

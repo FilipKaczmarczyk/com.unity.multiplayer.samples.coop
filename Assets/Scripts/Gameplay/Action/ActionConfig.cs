@@ -61,6 +61,9 @@ namespace Unity.BossRoom.Gameplay.Actions
         [Tooltip("The radius of effect for this action. Default is 0 if not needed")]
         public float Radius;
 
+        [Tooltip("Time interval between successive effects or actions related to the use of a spell or skill.")]
+        public float SpellEffectInterval;
+
         [Tooltip("Prefab to spawn that will manage this action's input")]
         public BaseActionInput ActionInput;
 
