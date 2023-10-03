@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using Unity.BossRoom.Utils;
 using UnityEngine;
 
 namespace Unity.BossRoom.Gameplay.Actions
@@ -66,6 +67,9 @@ namespace Unity.BossRoom.Gameplay.Actions
 
         [Tooltip("Prefab to spawn that will manage this action's input")]
         public BaseActionInput ActionInput;
+
+        [Tooltip("Sphere to spawn when aoe mana refil action was casted")]
+        public SelfDestructedAOESphere SelfDestructedAoeSphere;
 
         [Tooltip("Is this Action interruptible by other action-plays or by movement? (Implicitly stops movement when action starts.) Generally, actions with short exec times should not be interruptible in this way.")]
         public bool ActionInterruptible;

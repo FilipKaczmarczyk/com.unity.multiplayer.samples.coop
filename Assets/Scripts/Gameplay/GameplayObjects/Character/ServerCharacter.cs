@@ -282,7 +282,7 @@ namespace Unity.BossRoom.Gameplay.GameplayObjects.Character
 
         void InitializeManaPoints()
         {
-            ManaPoints = CharacterClass.BaseMana.Value;
+            ManaPoints = CharacterClass.BaseMana.Value / 2;
 
             if (!IsNpc)
             {
