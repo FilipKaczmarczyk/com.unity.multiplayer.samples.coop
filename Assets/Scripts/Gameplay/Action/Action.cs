@@ -98,8 +98,7 @@ namespace Unity.BossRoom.Gameplay.Actions
         /// </summary>
         /// <returns>false if the action decided it doesn't want to run after all, true otherwise. </returns>
         public abstract bool OnStart(ServerCharacter serverCharacter);
-
-
+        
         /// <summary>
         /// Called each frame while the action is running.
         /// </summary>
@@ -113,6 +112,18 @@ namespace Unity.BossRoom.Gameplay.Actions
         public virtual bool ShouldBecomeNonBlocking()
         {
             return Config.BlockingMode == BlockingModeType.OnlyDuringExecTime ? TimeRunning >= Config.ExecTimeSeconds : false;
+        }
+        
+        /// <summary>
+        /// Called after the Action starts, consumes mana from spell caster only when is PC
+        /// </summary>
+        public void SpendMana(ServerCharacter clientCharacter)
+        {
+            if(clientCharacter.transform.GetComponent<ManaOwner>() == null)
+                return;
+            
+            var manaOwner = clientCharacter.transform.GetComponent<ManaOwner>();
+            manaOwner.ReceiveMP(-Config.ManaCost);
         }
 
         /// <summary>

@@ -182,18 +182,31 @@ namespace Unity.BossRoom.Gameplay.Actions
                     AdvanceQueue(false); // note: this will call StartAction() recursively if there's more stuff in the queue ...
                     return;              // ... so it's important not to try to do anything more here
                 }
+                
+                var enoughMana = m_ServerCharacter.ManaPoints >= m_Queue[0].Config.ManaCost;
+                
+                // Check is enough mana to cast spell and check is player character, because NPC's dont have mana 
+                if (!enoughMana && m_ServerCharacter.transform.GetComponent<ManaOwner>() != null)
+                {
+                    AdvanceQueue(false); 
+                    return;   
+                }
 
                 int index = SynthesizeTargetIfNecessary(0);
                 SynthesizeChaseIfNecessary(index);
 
                 m_Queue[0].TimeStarted = Time.time;
-                bool play = m_Queue[0].OnStart(m_ServerCharacter);
+                
+                var play = m_Queue[0].OnStart(m_ServerCharacter);
                 if (!play)
                 {
                     //actions that exited out in the "Start" method will not have their End method called, by design.
                     AdvanceQueue(false); // note: this will call StartAction() recursively if there's more stuff in the queue ...
                     return;              // ... so it's important not to try to do anything more here
                 }
+                
+                // pay mana cost after spell cast
+                m_Queue[0].SpendMana(m_ServerCharacter);
 
                 // if this Action is interruptible, that means movement should interrupt it... character needs to be stationary for this!
                 // So stop any movement that's already happening before we begin
@@ -204,7 +217,7 @@ namespace Unity.BossRoom.Gameplay.Actions
 
                 // remember the moment when we successfully used this Action!
                 m_LastUsedTimestamps[m_Queue[0].ActionID] = Time.time;
-
+                
                 if (m_Queue[0].Config.ExecTimeSeconds == 0 && m_Queue[0].Config.BlockingMode == BlockingModeType.OnlyDuringExecTime)
                 {
                     //this is a non-blocking action with no exec time. It should never be hanging out at the front of the queue (not even for a frame),
